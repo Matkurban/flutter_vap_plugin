@@ -1,5 +1,5 @@
 name: flutter_vap_plugin
-description: "A new Flutter project."
+description: "Flutter plugin for Vap service"
 version: 0.0.1
 repository: https://github.com/Matkurban/flutter_vap_plugin.git
 homepage: https://github.com/Matkurban/flutter_vap_plugin.git
