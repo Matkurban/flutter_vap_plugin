@@ -1,7 +1,8 @@
 name: flutter_vap_plugin
 description: "A new Flutter project."
 version: 0.0.1
-homepage:
+repository: https://github.com/Matkurban/flutter_vap_plugin.git
+homepage: https://github.com/Matkurban/flutter_vap_plugin.git
 
 environment:
   sdk: ^3.7.2
