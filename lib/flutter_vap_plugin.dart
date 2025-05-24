@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vap_plugin/flutter_vap_type.dart';
+import 'package:flutter_vap_plugin/flutter_vap_controller.dart';
 
 typedef VapErrorCallback = void Function(int errorType, String errorMsg);
 typedef VapFrameCallback = void Function(int frameIndex);
@@ -13,6 +14,7 @@ class FlutterVapPlugin extends StatefulWidget {
     required this.path,
     required this.sourceType,
     this.repeatCount = 1,
+    this.controller,
     this.onVideoStart,
     this.onVideoComplete,
     this.onVideoDestroy,
@@ -31,6 +33,9 @@ class FlutterVapPlugin extends StatefulWidget {
   /// Loop count, -1 for infinite loop
   /// 循环次数，-1 表示无限循环
   final int repeatCount;
+
+  /// 外部控制器，可用于控制播放/停止
+  final FlutterVapController? controller;
   // Callback when video starts playing
   // 视频开始播放回调
   final VapCallback? onVideoStart;
@@ -57,13 +62,16 @@ class FlutterVapPlugin extends StatefulWidget {
 class _FlutterVapPluginState extends State<FlutterVapPlugin> {
   MethodChannel? _channel;
 
-  Future<void> stopPlay() async {
-    await _channel?.invokeMethod('stop');
+  @override
+  void dispose() {
+    _channel?.setMethodCallHandler(null);
+    super.dispose();
   }
 
   void _onPlatformViewCreated(int id) {
     _channel = MethodChannel('flutter_vap_plugin_$id');
     _channel?.setMethodCallHandler(_handleMethodCall);
+    widget.controller?.bindChannel(_channel!);
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -98,6 +106,7 @@ class _FlutterVapPluginState extends State<FlutterVapPlugin> {
       "path": widget.path,
       "sourceType": widget.sourceType.name,
       "repeatCount": widget.repeatCount, // 添加循环次数参数
+      "autoPlay": widget.controller == null, // 只有未传入controller时自动播放
     };
 
     if (Platform.isAndroid) {
@@ -119,11 +128,5 @@ class _FlutterVapPluginState extends State<FlutterVapPlugin> {
     } else {
       return const Center(child: Text('Unsupported platform'));
     }
-  }
-
-  @override
-  void dispose() {
-    _channel?.setMethodCallHandler(null);
-    super.dispose();
   }
 }

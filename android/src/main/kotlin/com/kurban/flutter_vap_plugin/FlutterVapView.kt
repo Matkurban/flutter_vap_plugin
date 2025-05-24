@@ -26,7 +26,10 @@ class FlutterVapView(
     private var animView: AnimView = AnimView(context)
     private val methodChannel: MethodChannel = MethodChannel(messenger, "flutter_vap_plugin_$viewId")
     private val repeatCount: Int = (params?.get("repeatCount") as? Int) ?: 1
+    private val autoPlay: Boolean = params?.get("autoPlay") as? Boolean ?: true
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var lastPlayedFile: File? = null
+    private var destroyed = false
 
     init {
         // 设置视图布局参数，使其撑满父容器
@@ -45,10 +48,25 @@ class FlutterVapView(
                     animView.stopPlay()
                     result.success(null)
                 }
+                "play" -> {
+                    lastPlayedFile?.let {
+                        animView.setLoop(repeatCount)
+                        animView.startPlay(it)
+                    }
+                    result.success(null)
+                }
+                "destroy" -> {
+                    destroyInstance()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
-        loadAndPlay()
+        if (autoPlay) {
+            loadAndPlay()
+        } else {
+            loadOnly()
+        }
     }
 
     private fun loadAndPlay() {
@@ -89,9 +107,55 @@ class FlutterVapView(
         }
     }
 
+    private fun loadOnly() {
+        val path = params?.get("path") as? String ?: return
+        val sourceType = params?.get("sourceType") as? String ?: return
+
+        when (sourceType) {
+            "network" -> {
+                Thread {
+                    try {
+                        val url = URL(path)
+                        val connection = url.openConnection()
+                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
+
+                        connection.getInputStream().use { input ->
+                            FileOutputStream(tempFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+
+                        animView.post {
+                            lastPlayedFile = tempFile
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FlutterVapView", "Failed to load video", e)
+                    }
+                }.start()
+            }
+            "file" -> {
+                val file = File(path)
+                if (file.exists()) {
+                    lastPlayedFile = file
+                }
+            }
+            "asset" -> {
+                // TODO: Implement asset loading
+            }
+        }
+    }
+
     private fun startPlay(file: File) {
         animView.setLoop(repeatCount) // 设置循环次数，-1为无限循环
         animView.startPlay(file)
+        lastPlayedFile = file
+    }
+
+    private fun destroyInstance() {
+        if (!destroyed) {
+            animView.stopPlay()
+            destroyed = true
+        }
     }
 
     override fun getView(): View {
@@ -99,7 +163,6 @@ class FlutterVapView(
     }
 
     override fun dispose() {
-        animView.stopPlay()
         methodChannel.setMethodCallHandler(null)
     }
 
