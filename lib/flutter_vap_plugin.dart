@@ -12,7 +12,7 @@ class FlutterVapPlugin extends StatefulWidget {
     super.key,
     required this.path,
     required this.sourceType,
-    this.repeatCount = 1,  // 添加循环次数参数，-1表示无限循环
+    this.repeatCount = 1,
     this.onVideoStart,
     this.onVideoComplete,
     this.onVideoDestroy,
@@ -21,14 +21,33 @@ class FlutterVapPlugin extends StatefulWidget {
     this.onVideoConfigReady,
   });
 
+  // VAP video path (supports local, asset, network)
+  // VAP 视频路径（支持本地、asset、网络）
   final String path;
+  // Video source type (file/asset/network)
+  // 视频源类型（file/asset/network）
   final FlutterVapType sourceType;
-  final int repeatCount;  // 添加循环次数属性
+
+  /// Loop count, -1 for infinite loop
+  /// 循环次数，-1 表示无限循环
+  final int repeatCount;
+  // Callback when video starts playing
+  // 视频开始播放回调
   final VapCallback? onVideoStart;
+  // Callback when video playback completes
+  // 视频播放完成回调
   final VapCallback? onVideoComplete;
+  // Callback when video is destroyed
+  // 视频销毁回调
   final VapCallback? onVideoDestroy;
+  // Callback for each rendered frame, returns current frame index
+  // 渲染帧回调，返回当前帧索引
   final VapFrameCallback? onVideoRender;
+  // Callback when playback fails, returns error type and message
+  // 播放失败回调，返回错误类型和信息
   final VapErrorCallback? onFailed;
+  // Callback when video config is ready
+  // 视频配置就绪回调
   final VapCallback? onVideoConfigReady;
 
   @override
@@ -78,7 +97,7 @@ class _FlutterVapPluginState extends State<FlutterVapPlugin> {
     final params = {
       "path": widget.path,
       "sourceType": widget.sourceType.name,
-      "repeatCount": widget.repeatCount,  // 添加循环次数参数
+      "repeatCount": widget.repeatCount, // 添加循环次数参数
     };
 
     if (Platform.isAndroid) {

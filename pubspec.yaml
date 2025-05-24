@@ -1,6 +1,6 @@
 name: flutter_vap_plugin
-description: "Flutter plugin for Vap service"
-version: 0.0.1
+description: "A Flutter plugin for playing Tencent VAP animation videos on Android and iOS, supporting local, asset, and network sources with playback callbacks and loop control."
+version: 0.0.2
 repository: https://github.com/Matkurban/flutter_vap_plugin.git
 homepage: https://github.com/Matkurban/flutter_vap_plugin.git
 
