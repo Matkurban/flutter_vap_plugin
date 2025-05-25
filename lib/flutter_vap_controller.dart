@@ -13,10 +13,16 @@ class FlutterVapController {
   }
 
   /// 播放视频，必传 path/sourceType
-  Future<void> play({required String path, required VapSourceType sourceType}) async {
+  Future<void> play({
+    required String path,
+    required VapSourceType sourceType,
+  }) async {
     _lastPath = path;
     _lastSourceType = sourceType;
-    await _channel?.invokeMethod('play', {'path': path, 'sourceType': sourceType.type});
+    await _channel?.invokeMethod('play', {
+      'path': path,
+      'sourceType': sourceType.type,
+    });
   }
 
   /// 重新播放最后一次播放的视频

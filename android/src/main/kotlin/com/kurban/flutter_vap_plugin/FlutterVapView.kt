@@ -81,14 +81,14 @@ class FlutterVapView(
             // 打开资源文件
             context.assets.open(key).use { inputStream ->
                 // 创建临时文件
-                val tempFile = File.createTempFile("vap_", ".mp4", context.cacheDir)
+                val tempFile = File.createTempFile("vap_", null, context.cacheDir)
                 // 将资源写入临时文件
                 FileOutputStream(tempFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
                 return tempFile
             }
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             Log.e("FlutterVapView", "Failed to load asset: $assetPath", e)
             mainHandler.post {
                 methodChannel.invokeMethod("onFailed", mapOf(
@@ -100,34 +100,31 @@ class FlutterVapView(
         }
     }
 
-    private fun playWithParams(path: String, sourceType: String, repeatCount: Int) {
-        when (sourceType) {
-            "network" -> {
-                animView.startPlay(Uri.parse(path))
-            }
-            "file" -> {
-                val file = File(path)
-                if (file.exists()) {
-                    animView.startPlay(file)
-                }
-            }
-            "asset" -> {
-                loadAsset(path)?.let { file ->
-                    animView.startPlay(file)
-                    // 确保播放完成后删除临时文件
-                    file.deleteOnExit()
-                }
-            }
-        }
-    }
-
     private fun loadAndPlay() {
         val path = params?.get("path") as? String ?: return
         val sourceType = params?.get("sourceType") as? String ?: return
 
         when (sourceType) {
             "network" -> {
-                animView.startPlay(Uri.parse(path))
+                Thread {
+                    try {
+                        val url = URL(path)
+                        val connection = url.openConnection()
+                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
+
+                        connection.getInputStream().use { input ->
+                            FileOutputStream(tempFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+
+                        animView.post {
+                            startPlay(tempFile)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FlutterVapView", "Failed to load video", e)
+                    }
+                }.start()
             }
             "file" -> {
                 val file = File(path)
@@ -151,7 +148,25 @@ class FlutterVapView(
 
         when (sourceType) {
             "network" -> {
-                lastPlayedFile = null
+                Thread {
+                    try {
+                        val url = URL(path)
+                        val connection = url.openConnection()
+                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
+
+                        connection.getInputStream().use { input ->
+                            FileOutputStream(tempFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+
+                        animView.post {
+                            lastPlayedFile = tempFile
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FlutterVapView", "Failed to load video", e)
+                    }
+                }.start()
             }
             "file" -> {
                 val file = File(path)
@@ -172,6 +187,45 @@ class FlutterVapView(
     private fun startPlay(file: File) {
         animView.startPlay(file)
         lastPlayedFile = file
+    }
+
+    private fun playWithParams(path: String, sourceType: String, repeatCount: Int) {
+        when (sourceType) {
+            "network" -> {
+                Thread {
+                    try {
+                        val url = URL(path)
+                        val connection = url.openConnection()
+                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
+                        connection.getInputStream().use { input ->
+                            FileOutputStream(tempFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        animView.post {
+                            animView.startPlay(tempFile)
+                            lastPlayedFile = tempFile
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FlutterVapView", "Failed to load video", e)
+                    }
+                }.start()
+            }
+            "file" -> {
+                val file = File(path)
+                if (file.exists()) {
+                    animView.startPlay(file)
+                    lastPlayedFile = file
+                }
+            }
+            "asset" -> {
+                loadAsset(path)?.let { file ->
+                    animView.startPlay(file)
+                    // 确保播放完成后删除临时文件
+                    file.deleteOnExit()
+                }
+            }
+        }
     }
 
     private fun destroyInstance() {

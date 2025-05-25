@@ -20,20 +20,31 @@ class MyApp extends StatelessWidget {
             TextButton(
               onPressed: () {
                 vapController.play(
-                  path: "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test1.mp4",
-                  sourceType: VapSourceType.network,
+                  path: "assets/videos/test1.mp4",
+                  sourceType: VapSourceType.asset,
                 );
               },
-              child: Text("播放1"),
+              child: Text("播放资源1"),
             ),
             TextButton(
               onPressed: () {
                 vapController.play(
-                  path: "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test2.mp4",
+                  path:
+                      "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test1.mp4",
                   sourceType: VapSourceType.network,
                 );
               },
-              child: Text("播放2"),
+              child: Text("播放网络1"),
+            ),
+            TextButton(
+              onPressed: () {
+                vapController.play(
+                  path:
+                      "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test2.mp4",
+                  sourceType: VapSourceType.network,
+                );
+              },
+              child: Text("播放网络2"),
             ),
           ],
         ),
