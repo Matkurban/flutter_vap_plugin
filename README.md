@@ -95,8 +95,11 @@ class MyApp extends StatelessWidget {
 ## Parameters
 - `path`: VAP video path (local, asset, or network)
 - `sourceType`: video source type (file/asset/network)
-- `repeatCount`: loop count, -1 for infinite
 - Other parameters are callback functions
+
+## Replay
+
+- To play a loop, call the `replay` method of the controller
 
 ## Feedback & Support
 For other requirements or issues, please submit an issue or contact the author.

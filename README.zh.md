@@ -93,8 +93,11 @@ class MyApp extends StatelessWidget {
 ## 参数说明
 - `path`：VAP 视频路径（支持本地、asset、网络）
 - `sourceType`：视频源类型（file/asset/network）
-- `repeatCount`：循环次数，-1 为无限循环
 - 其余为回调函数
+
+## 重播
+
+- 使用 `vapController.play()` 方法重新播放视频
 
 ## 反馈与支持
 如有其他需求或问题，请提交 issue 或联系作者。

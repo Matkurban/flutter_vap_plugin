@@ -25,3 +25,7 @@
 ## 0.0.6
 
 * Fixed the looping issue
+
+## 0.0.7
+
+* Fixed the issue of loading resources on mobile devices

@@ -40,12 +40,13 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
     private let path: String
     private let sourceType: String
     private let autoPlay: Bool
-    private var vapView: QGVAPView?
+    private weak var vapView: QGVAPView?
     private var isDownloading = false
     private var channel: FlutterMethodChannel
     private var currentConfig: [String: Any]?
     private var lastPlayedPath: String?
     private var tapGesture: UITapGestureRecognizer?
+    private var isDestroyed = false
 
     init(frame: CGRect, viewId: Int64, messenger: FlutterBinaryMessenger, args: Any?) {
         let params = args as? [String: Any]
@@ -58,31 +59,39 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
             binaryMessenger: messenger
         )
         super.init()
-        setupMethodChannel()
-        if autoPlay {
-            setupVapView()
-        } else {
-            loadOnly()
+
+        // 确保在主线程设置 UI
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.setupMethodChannel()
+            if self.autoPlay {
+                self.setupVapView()
+            } else {
+                self.loadOnly()
+            }
         }
     }
 
     private func setupMethodChannel() {
         channel.setMethodCallHandler { [weak self] call, result in
-            guard let self = self else { return }
+            guard let self = self, !self.isDestroyed else {
+                result(FlutterError(code: "DESTROYED", message: "View was destroyed", details: nil))
+                return
+            }
 
             switch call.method {
             case "stop":
-                self.vapView?.stopHWDMP4()
+                self.stopPlayback()
                 result(nil)
             case "play":
                 if let args = call.arguments as? [String: Any],
                    let path = args["path"] as? String,
                    let sourceType = args["sourceType"] as? String {
                     self.playWithParams(path: path, sourceType: sourceType)
-                } else if let path = self.lastPlayedPath {
-                    self.playVideo(path)
+                    result(nil)
+                } else {
+                    result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments for play", details: nil))
                 }
-                result(nil)
             case "destroy":
                 self.destroyInstance()
                 result(nil)
@@ -93,14 +102,13 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
     }
 
     private func setupVapView() {
-        // 设置容器视图
         containerView.backgroundColor = .clear
 
-        // 创建 VAP 视图并设置为撑满父容器
-        vapView = QGVAPView(frame: containerView.bounds)
+        let newVapView = QGVAPView(frame: containerView.bounds)
+        vapView = newVapView
+
         guard let vapView = vapView else { return }
 
-        // 设置自动布局约束使其撑满父视图
         vapView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(vapView)
 
@@ -111,10 +119,8 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
             vapView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
         ])
 
-        // 设置视频内容模式为撑满
         vapView.contentMode = .scaleToFill
 
-        // 根据 sourceType 处理不同来源的视频
         switch sourceType {
         case "file":
             playVideo(path)
@@ -123,10 +129,109 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
                 playVideo(resourcePath)
             }
         case "network":
-            downloadAndPlay(url: path)
+            playVideo(path)
         default:
             print("FlutterVapPlugin - Unsupported source type: \(sourceType)")
         }
+    }
+
+    private func stopPlayback() {
+        DispatchQueue.main.async { [weak self] in
+            self?.vapView?.stopHWDMP4()
+        }
+    }
+
+    private func playVideo(_ videoPath: String) {
+        guard !isDestroyed else { return }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let vapView = self.vapView else { return }
+
+            print("FlutterVapPlugin - Playing video from path: \(videoPath)")
+            self.lastPlayedPath = videoPath
+            vapView.isUserInteractionEnabled = true
+            vapView.hwd_enterBackgroundOP = .stop
+
+            if self.tapGesture == nil {
+                let gesture = UITapGestureRecognizer(target: self, action: #selector(self.onTap))
+                vapView.addGestureRecognizer(gesture)
+                self.tapGesture = gesture
+            }
+
+            let config = QGVAPConfigModel()
+            if self.sourceType == "network" {
+                vapView.playHWDMP4(videoPath, config: config, delegate: self)
+            } else {
+                vapView.playMP4(videoPath, config: config, delegate: self)
+            }
+        }
+    }
+
+    // HWDMP4PlayDelegate methods
+    func onVapPlayStart() {
+        guard !isDestroyed else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.channel.invokeMethod("onVideoStart", arguments: nil)
+        }
+    }
+
+    func onVapPlayComplete() {
+        guard !isDestroyed else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.channel.invokeMethod("onVideoComplete", arguments: nil)
+        }
+    }
+
+    func onVapDidDestroyed() {
+        guard !isDestroyed else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.channel.invokeMethod("onVideoDestroy", arguments: nil)
+        }
+    }
+
+    func onVapPlayError(_ error: Error) {
+        guard !isDestroyed else { return }
+        DispatchQueue.main.async { [weak self] in
+            let errorInfo: [String: Any] = [
+                "errorType": -1,
+                "errorMsg": error.localizedDescription
+            ]
+            self?.channel.invokeMethod("onFailed", arguments: errorInfo)
+        }
+    }
+
+    func onVapPlayerFrame(_ frame: Int) {
+        guard !isDestroyed else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.channel.invokeMethod("onVideoRender", arguments: ["frameIndex": frame])
+        }
+    }
+
+    private func destroyInstance() {
+        isDestroyed = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.stopPlayback()
+            if let tap = self.tapGesture {
+                self.vapView?.removeGestureRecognizer(tap)
+                self.tapGesture = nil
+            }
+            self.vapView?.removeFromSuperview()
+            self.vapView = nil
+        }
+    }
+
+    deinit {
+        destroyInstance()
+    }
+
+    func dispose() {
+        destroyInstance()
+        channel.setMethodCallHandler(nil)
+    }
+
+    func view() -> UIView {
+        return containerView
     }
 
     private func loadOnly() {
@@ -139,92 +244,10 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
                 self.lastPlayedPath = resourcePath
             }
         case "network":
-            downloadOnly(url: path)
+            self.lastPlayedPath = path
         default:
             print("FlutterVapPlugin - Unsupported source type: \(sourceType)")
         }
-    }
-
-    private func downloadOnly(url urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let fileName = url.lastPathComponent
-        let localUrl = cacheDir.appendingPathComponent(fileName)
-        if FileManager.default.fileExists(atPath: localUrl.path) {
-            self.lastPlayedPath = localUrl.path
-            return
-        }
-        let session = URLSession.shared
-        let task = session.downloadTask(with: url) { [weak self] (tempUrl, response, error) in
-            guard let self = self else { return }
-            DispatchQueue.main.async {
-                if let tempUrl = tempUrl {
-                    do {
-                        if FileManager.default.fileExists(atPath: localUrl.path) {
-                            try FileManager.default.removeItem(at: localUrl)
-                        }
-                        try FileManager.default.moveItem(at: tempUrl, to: localUrl)
-                        self.lastPlayedPath = localUrl.path
-                    } catch {
-                        print("FlutterVapPlugin - File save error: \(error.localizedDescription)")
-                    }
-                }
-            }
-        }
-        task.resume()
-    }
-
-    private func downloadAndPlay(url urlString: String) {
-        guard let url = URL(string: urlString) else {
-            print("FlutterVapPlugin - Invalid URL: \(urlString)")
-            return
-        }
-
-        // 创建本地缓存目录
-        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let fileName = url.lastPathComponent
-        let localUrl = cacheDir.appendingPathComponent(fileName)
-
-        // 如果本地已经有缓存文件，直接播放
-        if FileManager.default.fileExists(atPath: localUrl.path) {
-            print("FlutterVapPlugin - Using cached file: \(localUrl.path)")
-            playVideo(localUrl.path)
-            return
-        }
-
-        print("FlutterVapPlugin - Downloading file from: \(urlString)")
-        isDownloading = true
-
-        let session = URLSession.shared
-        let task = session.downloadTask(with: url) { [weak self] (tempUrl, response, error) in
-            guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                self.isDownloading = false
-
-                if let error = error {
-                    print("FlutterVapPlugin - Download error: \(error.localizedDescription)")
-                    return
-                }
-
-                guard let tempUrl = tempUrl else {
-                    print("FlutterVapPlugin - No file downloaded")
-                    return
-                }
-
-                do {
-                    if FileManager.default.fileExists(atPath: localUrl.path) {
-                        try FileManager.default.removeItem(at: localUrl)
-                    }
-                    try FileManager.default.moveItem(at: tempUrl, to: localUrl)
-                    print("FlutterVapPlugin - File downloaded to: \(localUrl.path)")
-                    self.playVideo(localUrl.path)
-                } catch {
-                    print("FlutterVapPlugin - File save error: \(error.localizedDescription)")
-                }
-            }
-        }
-        task.resume()
     }
 
     private func playWithParams(path: String, sourceType: String) {
@@ -236,28 +259,10 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
                 self.playVideo(resourcePath)
             }
         case "network":
-            self.downloadAndPlay(url: path)
+            self.playVideo(path)
         default:
             print("FlutterVapPlugin - Unsupported source type: \(sourceType)")
         }
-    }
-
-    private func playVideo(_ videoPath: String) {
-        print("FlutterVapPlugin - Playing video from path: \(videoPath)")
-        guard let vapView = vapView else { return }
-        self.lastPlayedPath = videoPath
-        vapView.isUserInteractionEnabled = true
-        vapView.hwd_enterBackgroundOP = .stop
-        if tapGesture == nil {
-            let gesture = UITapGestureRecognizer(target: self, action: #selector(onTap))
-            vapView.addGestureRecognizer(gesture)
-            tapGesture = gesture
-        }
-
-        // 创建配置对象
-        let config = QGVAPConfigModel()
-        // 使用配置对象进行播放
-        vapView.playMP4(videoPath, config: config, delegate: self)
     }
 
     @objc private func onTap(gesture: UIGestureRecognizer) {
@@ -265,41 +270,6 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.vapView?.stopHWDMP4()
         }
-    }
-
-    private func destroyInstance() {
-        self.vapView?.stopHWDMP4()
-        if let tap = tapGesture {
-            self.vapView?.removeGestureRecognizer(tap)
-            tapGesture = nil
-        }
-        self.vapView?.removeFromSuperview()
-        self.vapView = nil
-    }
-
-    // HWDMP4PlayDelegate methods
-    func onVapPlayStart() {
-        channel.invokeMethod("onVideoStart", arguments: nil)
-    }
-
-    func onVapPlayComplete() {
-        channel.invokeMethod("onVideoComplete", arguments: nil)
-    }
-
-    func onVapDidDestroyed() {
-        channel.invokeMethod("onVideoDestroy", arguments: nil)
-    }
-
-    func onVapPlayError(_ error: Error) {
-        let errorInfo: [String: Any] = [
-            "errorType": -1,
-            "errorMsg": error.localizedDescription
-        ]
-        channel.invokeMethod("onFailed", arguments: errorInfo)
-    }
-
-    func onVapPlayerFrame(_ frame: Int) {
-        channel.invokeMethod("onVideoRender", arguments: ["frameIndex": frame])
     }
 
     func onVapConfigReady(_ config: [String: Any]) {
@@ -315,14 +285,5 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
         DispatchQueue.main.async {
             completionBlock(nil, nil, urlStr)
         }
-    }
-
-    func view() -> UIView {
-        return containerView
-    }
-
-    // dispose 不再自动销毁 vapView，仅解绑 channel
-    func dispose() {
-        channel.setMethodCallHandler(nil)
     }
 }
