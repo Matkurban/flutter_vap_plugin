@@ -15,7 +15,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_vap_plugin: ^0.0.1
+  flutter_vap_plugin: ^0.0.8
 ```
 
 ## Usage
