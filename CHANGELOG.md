@@ -17,3 +17,7 @@
 ## 0.0.4
 
 * The parameters path,sourceType,repeatCount are passed in using the play method of the controller
+
+## 0.0.5
+
+* Fix crash error in iOS

@@ -41,7 +41,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
     private let sourceType: String
     private let repeatCount: Int
     private let autoPlay: Bool
-    private var vapView: UIView?
+    private var vapView: QGVAPView?
     private var isDownloading = false
     private var channel: FlutterMethodChannel
     private var currentConfig: [String: Any]?
@@ -100,7 +100,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
         containerView.backgroundColor = .clear
 
         // 创建 VAP 视图并设置为撑满父容器
-        vapView = UIView(frame: containerView.bounds)
+        vapView = QGVAPView(frame: containerView.bounds)
         guard let vapView = vapView else { return }
 
         // 设置自动布局约束使其撑满父视图
@@ -297,7 +297,13 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
             vapView.addGestureRecognizer(gesture)
             tapGesture = gesture
         }
-        vapView.playHWDMP4(videoPath, repeatCount: repeatCount ?? self.repeatCount, delegate: self)
+
+        // 创建配置对象
+        let config = QGVAPConfigModel()
+        config.repeatCount = repeatCount ?? self.repeatCount
+
+        // 使用配置对象进行播放
+        vapView.playMP4(videoPath, config: config, delegate: self)
     }
 
     @objc private func onTap(gesture: UIGestureRecognizer) {
