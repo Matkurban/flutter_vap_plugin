@@ -25,7 +25,6 @@ class FlutterVapView(
 
     private var animView: AnimView = AnimView(context)
     private val methodChannel: MethodChannel = MethodChannel(messenger, "flutter_vap_plugin_$viewId")
-    private val repeatCount: Int = (params?.get("repeatCount") as? Int) ?: 1
     private val autoPlay: Boolean = params?.get("autoPlay") as? Boolean ?: true
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var lastPlayedFile: File? = null
@@ -148,7 +147,6 @@ class FlutterVapView(
     }
 
     private fun startPlay(file: File) {
-        animView.setLoop(repeatCount) // 设置循环次数，-1为无限循环
         animView.startPlay(file)
         lastPlayedFile = file
     }
@@ -167,7 +165,6 @@ class FlutterVapView(
                             }
                         }
                         animView.post {
-                            animView.setLoop(repeatCount)
                             animView.startPlay(tempFile)
                             lastPlayedFile = tempFile
                         }
@@ -179,7 +176,6 @@ class FlutterVapView(
             "file" -> {
                 val file = File(path)
                 if (file.exists()) {
-                    animView.setLoop(repeatCount)
                     animView.startPlay(file)
                     lastPlayedFile = file
                 }

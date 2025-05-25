@@ -21,3 +21,7 @@
 ## 0.0.5
 
 * Fix crash error in iOS
+
+## 0.0.6
+
+* Fixed the looping issue

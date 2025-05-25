@@ -47,6 +47,7 @@ class MyApp extends StatelessWidget {
             },
             onVideoComplete: () {
               debugPrint('VAP - 视频播放完成');
+              vapController.replay();
             },
             onVideoDestroy: () {
               debugPrint('VAP - 视频播放器销毁');

@@ -39,7 +39,6 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
     private let containerView: UIView
     private let path: String
     private let sourceType: String
-    private let repeatCount: Int
     private let autoPlay: Bool
     private var vapView: QGVAPView?
     private var isDownloading = false
@@ -52,7 +51,6 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
         let params = args as? [String: Any]
         self.path = params?["path"] as? String ?? ""
         self.sourceType = params?["sourceType"] as? String ?? ""
-        self.repeatCount = params?["repeatCount"] as? Int ?? 1
         self.autoPlay = params?["autoPlay"] as? Bool ?? true
         self.containerView = UIView(frame: frame)
         self.channel = FlutterMethodChannel(
@@ -80,8 +78,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
                 if let args = call.arguments as? [String: Any],
                    let path = args["path"] as? String,
                    let sourceType = args["sourceType"] as? String {
-                    let repeatCount = args["repeatCount"] as? Int ?? 1
-                    self.playWithParams(path: path, sourceType: sourceType, repeatCount: repeatCount)
+                    self.playWithParams(path: path, sourceType: sourceType)
                 } else if let path = self.lastPlayedPath {
                     self.playVideo(path)
                 }
@@ -230,63 +227,22 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
         task.resume()
     }
 
-    private func downloadAndPlay(url urlString: String, repeatCount: Int) {
-        guard let url = URL(string: urlString) else {
-            print("FlutterVapPlugin - Invalid URL: \(urlString)")
-            return
-        }
-        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let fileName = url.lastPathComponent
-        let localUrl = cacheDir.appendingPathComponent(fileName)
-        if FileManager.default.fileExists(atPath: localUrl.path) {
-            self.playVideo(localUrl.path, repeatCount: repeatCount)
-            return
-        }
-        isDownloading = true
-        let session = URLSession.shared
-        let task = session.downloadTask(with: url) { [weak self] (tempUrl, response, error) in
-            guard let self = self else { return }
-            DispatchQueue.main.async {
-                self.isDownloading = false
-                if let error = error {
-                    print("FlutterVapPlugin - Download error: \(error.localizedDescription)")
-                    return
-                }
-                guard let tempUrl = tempUrl else {
-                    print("FlutterVapPlugin - No file downloaded")
-                    return
-                }
-                do {
-                    if FileManager.default.fileExists(atPath: localUrl.path) {
-                        try FileManager.default.removeItem(at: localUrl)
-                    }
-                    try FileManager.default.moveItem(at: tempUrl, to: localUrl)
-                    print("FlutterVapPlugin - File downloaded to: \(localUrl.path)")
-                    self.playVideo(localUrl.path, repeatCount: repeatCount)
-                } catch {
-                    print("FlutterVapPlugin - File save error: \(error.localizedDescription)")
-                }
-            }
-        }
-        task.resume()
-    }
-
-    private func playWithParams(path: String, sourceType: String, repeatCount: Int) {
+    private func playWithParams(path: String, sourceType: String) {
         switch sourceType {
         case "file":
-            self.playVideo(path, repeatCount: repeatCount)
+            self.playVideo(path)
         case "asset":
             if let resourcePath = Bundle.main.path(forResource: path, ofType: nil) {
-                self.playVideo(resourcePath, repeatCount: repeatCount)
+                self.playVideo(resourcePath)
             }
         case "network":
-            self.downloadAndPlay(url: path, repeatCount: repeatCount)
+            self.downloadAndPlay(url: path)
         default:
             print("FlutterVapPlugin - Unsupported source type: \(sourceType)")
         }
     }
 
-    private func playVideo(_ videoPath: String, repeatCount: Int? = nil) {
+    private func playVideo(_ videoPath: String) {
         print("FlutterVapPlugin - Playing video from path: \(videoPath)")
         guard let vapView = vapView else { return }
         self.lastPlayedPath = videoPath
@@ -300,8 +256,6 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
 
         // 创建配置对象
         let config = QGVAPConfigModel()
-        config.repeatCount = repeatCount ?? self.repeatCount
-
         // 使用配置对象进行播放
         vapView.playMP4(videoPath, config: config, delegate: self)
     }
