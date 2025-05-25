@@ -1,6 +1,6 @@
 /// Enum for VAP video source type
 /// VAP 视频源类型枚举
-enum FlutterVapType {
+enum VapSourceType {
   /// Local file source
   /// 本地文件
   file('file'),
@@ -15,7 +15,7 @@ enum FlutterVapType {
 
   /// Source type name string
   /// 源类型名称字符串
-  final String name;
+  final String type;
 
-  const FlutterVapType(this.name);
+  const VapSourceType(this.type);
 }

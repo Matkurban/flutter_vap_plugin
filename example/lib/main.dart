@@ -1,29 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_vap_plugin/flutter_vap_controller.dart';
 import 'package:flutter_vap_plugin/flutter_vap_plugin.dart';
-import 'package:flutter_vap_plugin/flutter_vap_type.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class MyApp extends StatelessWidget {
+  MyApp({super.key});
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  late FlutterVapController vapController;
-
-  late Icon statusIcon = Icon(Icons.play_arrow);
-
-  @override
-  void initState() {
-    super.initState();
-    vapController = FlutterVapController();
-  }
+  final FlutterVapController vapController = FlutterVapController();
 
   @override
   Widget build(BuildContext context) {
@@ -32,38 +17,36 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
           actions: [
-            IconButton(
+            TextButton(
               onPressed: () {
-                if (statusIcon.icon == Icons.play_arrow) {
-                  vapController.play();
-                } else {
-                  vapController.stop();
-                }
+                vapController.play(
+                  path: "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test1.mp4",
+                  sourceType: VapSourceType.network,
+                );
               },
-              icon: statusIcon,
+              child: Text("播放1"),
+            ),
+            TextButton(
+              onPressed: () {
+                vapController.play(
+                  path: "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test2.mp4",
+                  sourceType: VapSourceType.network,
+                );
+              },
+              child: Text("播放2"),
             ),
           ],
         ),
         body: SizedBox(
           width: double.infinity,
           height: double.infinity,
-          child: FlutterVapPlugin(
-            repeatCount: 3,
+          child: FlutterVapView(
             controller: vapController,
-            path:
-                'https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test1.mp4',
-            sourceType: FlutterVapType.network,
             onVideoStart: () {
               debugPrint('VAP - 视频开始播放');
-              setState(() {
-                statusIcon = const Icon(Icons.pause);
-              });
             },
             onVideoComplete: () {
               debugPrint('VAP - 视频播放完成');
-              setState(() {
-                statusIcon = const Icon(Icons.play_arrow);
-              });
             },
             onVideoDestroy: () {
               debugPrint('VAP - 视频播放器销毁');

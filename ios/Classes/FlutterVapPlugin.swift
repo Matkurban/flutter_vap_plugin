@@ -77,7 +77,12 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
                 self.vapView?.stopHWDMP4()
                 result(nil)
             case "play":
-                if let path = self.lastPlayedPath {
+                if let args = call.arguments as? [String: Any],
+                   let path = args["path"] as? String,
+                   let sourceType = args["sourceType"] as? String {
+                    let repeatCount = args["repeatCount"] as? Int ?? 1
+                    self.playWithParams(path: path, sourceType: sourceType, repeatCount: repeatCount)
+                } else if let path = self.lastPlayedPath {
                     self.playVideo(path)
                 }
                 result(nil)
@@ -225,24 +230,74 @@ class FlutterVapView: NSObject, FlutterPlatformView, HWDMP4PlayDelegate {
         task.resume()
     }
 
-    private func playVideo(_ videoPath: String) {
+    private func downloadAndPlay(url urlString: String, repeatCount: Int) {
+        guard let url = URL(string: urlString) else {
+            print("FlutterVapPlugin - Invalid URL: \(urlString)")
+            return
+        }
+        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let fileName = url.lastPathComponent
+        let localUrl = cacheDir.appendingPathComponent(fileName)
+        if FileManager.default.fileExists(atPath: localUrl.path) {
+            self.playVideo(localUrl.path, repeatCount: repeatCount)
+            return
+        }
+        isDownloading = true
+        let session = URLSession.shared
+        let task = session.downloadTask(with: url) { [weak self] (tempUrl, response, error) in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.isDownloading = false
+                if let error = error {
+                    print("FlutterVapPlugin - Download error: \(error.localizedDescription)")
+                    return
+                }
+                guard let tempUrl = tempUrl else {
+                    print("FlutterVapPlugin - No file downloaded")
+                    return
+                }
+                do {
+                    if FileManager.default.fileExists(atPath: localUrl.path) {
+                        try FileManager.default.removeItem(at: localUrl)
+                    }
+                    try FileManager.default.moveItem(at: tempUrl, to: localUrl)
+                    print("FlutterVapPlugin - File downloaded to: \(localUrl.path)")
+                    self.playVideo(localUrl.path, repeatCount: repeatCount)
+                } catch {
+                    print("FlutterVapPlugin - File save error: \(error.localizedDescription)")
+                }
+            }
+        }
+        task.resume()
+    }
+
+    private func playWithParams(path: String, sourceType: String, repeatCount: Int) {
+        switch sourceType {
+        case "file":
+            self.playVideo(path, repeatCount: repeatCount)
+        case "asset":
+            if let resourcePath = Bundle.main.path(forResource: path, ofType: nil) {
+                self.playVideo(resourcePath, repeatCount: repeatCount)
+            }
+        case "network":
+            self.downloadAndPlay(url: path, repeatCount: repeatCount)
+        default:
+            print("FlutterVapPlugin - Unsupported source type: \(sourceType)")
+        }
+    }
+
+    private func playVideo(_ videoPath: String, repeatCount: Int? = nil) {
         print("FlutterVapPlugin - Playing video from path: \(videoPath)")
         guard let vapView = vapView else { return }
         self.lastPlayedPath = videoPath
-
-        // 设置交互和背景行为
         vapView.isUserInteractionEnabled = true
         vapView.hwd_enterBackgroundOP = .stop
-
-        // 只添加一次点击手势用于停止播放，避免重复添加
         if tapGesture == nil {
             let gesture = UITapGestureRecognizer(target: self, action: #selector(onTap))
             vapView.addGestureRecognizer(gesture)
             tapGesture = gesture
         }
-
-        // 使用repeatCount参数
-        vapView.playHWDMP4(videoPath, repeatCount: repeatCount, delegate: self)
+        vapView.playHWDMP4(videoPath, repeatCount: repeatCount ?? self.repeatCount, delegate: self)
     }
 
     @objc private func onTap(gesture: UIGestureRecognizer) {

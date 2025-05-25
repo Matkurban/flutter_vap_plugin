@@ -13,3 +13,7 @@
 ## 0.0.3
 
 * add FlutterVapController to control video playback
+
+## 0.0.4
+
+* The parameters path,sourceType,repeatCount are passed in using the play method of the controller

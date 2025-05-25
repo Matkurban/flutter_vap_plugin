@@ -49,9 +49,11 @@ class FlutterVapView(
                     result.success(null)
                 }
                 "play" -> {
-                    lastPlayedFile?.let {
-                        animView.setLoop(repeatCount)
-                        animView.startPlay(it)
+                    val path = (call.argument<String>("path"))
+                    val sourceType = (call.argument<String>("sourceType"))
+                    val repeatCount = call.argument<Int>("repeatCount") ?: 1
+                    if (path != null && sourceType != null) {
+                        playWithParams(path, sourceType, repeatCount)
                     }
                     result.success(null)
                 }
@@ -149,6 +151,43 @@ class FlutterVapView(
         animView.setLoop(repeatCount) // 设置循环次数，-1为无限循环
         animView.startPlay(file)
         lastPlayedFile = file
+    }
+
+    private fun playWithParams(path: String, sourceType: String, repeatCount: Int) {
+        when (sourceType) {
+            "network" -> {
+                Thread {
+                    try {
+                        val url = URL(path)
+                        val connection = url.openConnection()
+                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
+                        connection.getInputStream().use { input ->
+                            FileOutputStream(tempFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        animView.post {
+                            animView.setLoop(repeatCount)
+                            animView.startPlay(tempFile)
+                            lastPlayedFile = tempFile
+                        }
+                    } catch (e: Exception) {
+                        Log.e("FlutterVapView", "Failed to load video", e)
+                    }
+                }.start()
+            }
+            "file" -> {
+                val file = File(path)
+                if (file.exists()) {
+                    animView.setLoop(repeatCount)
+                    animView.startPlay(file)
+                    lastPlayedFile = file
+                }
+            }
+            "asset" -> {
+                // TODO: Implement asset loading
+            }
+        }
     }
 
     private fun destroyInstance() {

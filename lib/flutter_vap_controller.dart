@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter_vap_plugin/vap_source_type.dart';
 
 /// 用于控制VAP视频播放的控制器
 class FlutterVapController {
@@ -9,9 +10,9 @@ class FlutterVapController {
     _channel = channel;
   }
 
-  /// 播放视频
-  Future<void> play() async {
-    await _channel?.invokeMethod('play');
+  /// 播放视频，必传 path/sourceType/repeatCount
+  Future<void> play({required String path, required VapSourceType sourceType, int repeatCount = 1}) async {
+    await _channel?.invokeMethod('play', {'path': path, 'sourceType': sourceType.type, 'repeatCount': repeatCount});
   }
 
   /// 停止播放
