@@ -29,3 +29,8 @@
 ## 0.0.8
 
 * Fixed the issue of loading resources on mobile devices
+
+## 0.0.9
+
+
+* fix ios bug
