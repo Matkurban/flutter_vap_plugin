@@ -30,7 +30,7 @@
 
 * Fixed the issue of loading resources on mobile devices
 
-## 0.0.9
+## 0.1.0
 
 
 * fix ios bug
