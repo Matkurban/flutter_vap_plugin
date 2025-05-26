@@ -36,9 +36,4 @@ class FlutterVapController {
   Future<void> stop() async {
     await _channel?.invokeMethod('stop');
   }
-
-  /// 销毁播放器实例
-  Future<void> destroy() async {
-    await _channel?.invokeMethod('destroy');
-  }
 }

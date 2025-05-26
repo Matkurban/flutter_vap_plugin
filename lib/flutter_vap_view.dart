@@ -12,11 +12,10 @@ class FlutterVapView extends StatefulWidget {
     super.key,
     required this.controller,
     this.onVideoStart,
-    this.onVideoComplete,
-    this.onVideoDestroy,
+    this.onVideoFinish,
+    this.onVideoStop,
     this.onVideoRender,
     this.onFailed,
-    this.onVideoConfigReady,
   });
 
   /// 外部控制器，必填
@@ -26,19 +25,16 @@ class FlutterVapView extends StatefulWidget {
   final VapCallback? onVideoStart;
   // Callback when video playback completes
   // 视频播放完成回调
-  final VapCallback? onVideoComplete;
+  final VapCallback? onVideoFinish;
   // Callback when video is destroyed
   // 视频销毁回调
-  final VapCallback? onVideoDestroy;
+  final VapCallback? onVideoStop;
   // Callback for each rendered frame, returns current frame index
   // 渲染帧回调，返回当前帧索引
   final VapFrameCallback? onVideoRender;
   // Callback when playback fails, returns error type and message
   // 播放失败回调，返回错误类型和信息
   final VapErrorCallback? onFailed;
-  // Callback when video config is ready
-  // 视频配置就绪回调
-  final VapCallback? onVideoConfigReady;
 
   @override
   State<FlutterVapView> createState() => _FlutterVapViewState();
@@ -64,11 +60,11 @@ class _FlutterVapViewState extends State<FlutterVapView> {
       case 'onVideoStart':
         widget.onVideoStart?.call();
         break;
-      case 'onVideoComplete':
-        widget.onVideoComplete?.call();
+      case 'onVideoFinish':
+        widget.onVideoFinish?.call();
         break;
-      case 'onVideoDestroy':
-        widget.onVideoDestroy?.call();
+      case 'onVideoStop':
+        widget.onVideoStop?.call();
         break;
       case 'onVideoRender':
         final frameIndex = call.arguments['frameIndex'] as int;
@@ -78,9 +74,6 @@ class _FlutterVapViewState extends State<FlutterVapView> {
         final errorType = call.arguments['errorType'] as int;
         final errorMsg = call.arguments['errorMsg'] as String;
         widget.onFailed?.call(errorType, errorMsg);
-        break;
-      case 'onVideoConfigReady':
-        widget.onVideoConfigReady?.call();
         break;
     }
   }

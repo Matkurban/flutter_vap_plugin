@@ -27,7 +27,6 @@ class FlutterVapView(
 
     private var animView: AnimView = AnimView(context)
     private val methodChannel: MethodChannel = MethodChannel(messenger, "flutter_vap_plugin_$viewId")
-    private val autoPlay: Boolean = params?.get("autoPlay") as? Boolean ?: true
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var lastPlayedFile: File? = null
     private var destroyed = false
@@ -58,17 +57,8 @@ class FlutterVapView(
                     }
                     result.success(null)
                 }
-                "destroy" -> {
-                    destroyInstance()
-                    result.success(null)
-                }
                 else -> result.notImplemented()
             }
-        }
-        if (autoPlay) {
-            loadAndPlay()
-        } else {
-            loadOnly()
         }
     }
 
@@ -100,131 +90,42 @@ class FlutterVapView(
         }
     }
 
-    private fun loadAndPlay() {
-        val path = params?.get("path") as? String ?: return
-        val sourceType = params?.get("sourceType") as? String ?: return
-
-        when (sourceType) {
-            "network" -> {
-                Thread {
-                    try {
-                        val url = URL(path)
-                        val connection = url.openConnection()
-                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
-
-                        connection.getInputStream().use { input ->
-                            FileOutputStream(tempFile).use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-
-                        animView.post {
-                            startPlay(tempFile)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("FlutterVapView", "Failed to load video", e)
-                    }
-                }.start()
-            }
-            "file" -> {
-                val file = File(path)
-                if (file.exists()) {
-                    startPlay(file)
-                }
-            }
-            "asset" -> {
-                loadAsset(path)?.let { file ->
-                    startPlay(file)
-                    // 确保播放完成后删除临时文件
-                    file.deleteOnExit()
-                }
-            }
-        }
-    }
-
-    private fun loadOnly() {
-        val path = params?.get("path") as? String ?: return
-        val sourceType = params?.get("sourceType") as? String ?: return
-
-        when (sourceType) {
-            "network" -> {
-                Thread {
-                    try {
-                        val url = URL(path)
-                        val connection = url.openConnection()
-                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
-
-                        connection.getInputStream().use { input ->
-                            FileOutputStream(tempFile).use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-
-                        animView.post {
-                            lastPlayedFile = tempFile
-                        }
-                    } catch (e: Exception) {
-                        Log.e("FlutterVapView", "Failed to load video", e)
-                    }
-                }.start()
-            }
-            "file" -> {
-                val file = File(path)
-                if (file.exists()) {
-                    lastPlayedFile = file
-                }
-            }
-            "asset" -> {
-                loadAsset(path)?.let { file ->
-                    lastPlayedFile = file
-                    // 确保播放完成后删除临时文件
-                    file.deleteOnExit()
-                }
-            }
-        }
-    }
-
     private fun startPlay(file: File) {
         animView.startPlay(file)
         lastPlayedFile = file
     }
 
     private fun playWithParams(path: String, sourceType: String, repeatCount: Int) {
-        when (sourceType) {
-            "network" -> {
-                Thread {
-                    try {
-                        val url = URL(path)
-                        val connection = url.openConnection()
-                        val tempFile = File(context.cacheDir, "temp_vap.mp4")
-                        connection.getInputStream().use { input ->
-                            FileOutputStream(tempFile).use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-                        animView.post {
-                            animView.startPlay(tempFile)
-                            lastPlayedFile = tempFile
-                        }
-                    } catch (e: Exception) {
-                        Log.e("FlutterVapView", "Failed to load video", e)
+        try {
+            when (sourceType) {
+                "file" -> {
+                    val file = File(path)
+                    if (file.exists()) {
+                        animView.setLoop(repeatCount)
+                        animView.startPlay(file)
+                        lastPlayedFile = file
+                    } else {
+                        onFailed(-1, "File does not exist: $path")
                     }
-                }.start()
-            }
-            "file" -> {
-                val file = File(path)
-                if (file.exists()) {
-                    animView.startPlay(file)
-                    lastPlayedFile = file
+                }
+                "asset" -> {
+                    loadAsset(path)?.let { file ->
+                        try {
+                            animView.setLoop(repeatCount)
+                            animView.startPlay(file)
+                            file.deleteOnExit() // 确保临时文件会被清理
+                        } catch (e: Exception) {
+                            onFailed(-1, "Failed to play asset: ${e.message}")
+                            file.delete() // 出错时立即删除临时文件
+                        }
+                    }
+                }
+                else -> {
+                    onFailed(-1, "Unsupported source type: $sourceType")
                 }
             }
-            "asset" -> {
-                loadAsset(path)?.let { file ->
-                    animView.startPlay(file)
-                    // 确保播放完成后删除临时文件
-                    file.deleteOnExit()
-                }
-            }
+        } catch (e: Exception) {
+            onFailed(-1, "Playback error: ${e.message}")
         }
     }
 
@@ -240,38 +141,42 @@ class FlutterVapView(
     }
 
     override fun dispose() {
-        methodChannel.setMethodCallHandler(null)
-    }
-
-    // IAnimListener implementations
-    override fun onVideoConfigReady(config: com.tencent.qgame.animplayer.AnimConfig): Boolean {
-        mainHandler.post {
-            methodChannel.invokeMethod("onVideoConfigReady", null)
+        try {
+            animView.stopPlay()
+            methodChannel.setMethodCallHandler(null)
+            lastPlayedFile?.delete() // 清理最后播放的临时文件
+        } catch (e: Exception) {
+            Log.e("FlutterVapView", "Error during dispose", e)
         }
-        return true
     }
 
     override fun onVideoStart() {
-        mainHandler.post {
-            methodChannel.invokeMethod("onVideoStart", null)
+        if (!destroyed) {
+            mainHandler.post {
+                methodChannel.invokeMethod("onVideoStart", null)
+            }
         }
     }
 
     override fun onVideoRender(frameIndex: Int, config: com.tencent.qgame.animplayer.AnimConfig?) {
-        mainHandler.post {
-            methodChannel.invokeMethod("onVideoRender", mapOf("frameIndex" to frameIndex))
+        if (!destroyed) {
+            mainHandler.post {
+                methodChannel.invokeMethod("onVideoRender", mapOf("frameIndex" to frameIndex))
+            }
         }
     }
 
     override fun onVideoComplete() {
-        mainHandler.post {
-            methodChannel.invokeMethod("onVideoComplete", null)
+        if (!destroyed) {
+            mainHandler.post {
+                methodChannel.invokeMethod("onVideoFinish", null)
+            }
         }
     }
 
     override fun onVideoDestroy() {
         mainHandler.post {
-            methodChannel.invokeMethod("onVideoDestroy", null)
+            methodChannel.invokeMethod("onVideoStop", null)
         }
     }
 

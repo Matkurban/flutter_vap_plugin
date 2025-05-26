@@ -7,11 +7,7 @@ enum VapSourceType {
 
   /// Asset source
   /// 资源文件
-  asset('asset'),
-
-  /// Network source
-  /// 网络资源
-  network('network');
+  asset('asset');
 
   /// Source type name string
   /// 源类型名称字符串

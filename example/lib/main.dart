@@ -26,26 +26,6 @@ class MyApp extends StatelessWidget {
               },
               child: Text("播放资源1"),
             ),
-            TextButton(
-              onPressed: () {
-                vapController.play(
-                  path:
-                      "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test1.mp4",
-                  sourceType: VapSourceType.network,
-                );
-              },
-              child: Text("播放网络1"),
-            ),
-            TextButton(
-              onPressed: () {
-                vapController.play(
-                  path:
-                      "https://baimiaoxing.oss-cn-hangzhou.aliyuncs.com/system/test2.mp4",
-                  sourceType: VapSourceType.network,
-                );
-              },
-              child: Text("播放网络2"),
-            ),
           ],
         ),
         body: SizedBox(
@@ -56,20 +36,17 @@ class MyApp extends StatelessWidget {
             onVideoStart: () {
               debugPrint('VAP - 视频开始播放');
             },
-            onVideoComplete: () {
+            onVideoFinish: () {
               debugPrint('VAP - 视频播放完成');
             },
-            onVideoDestroy: () {
-              debugPrint('VAP - 视频播放器销毁');
+            onVideoStop: () {
+              debugPrint('VAP - 视频播放器停止播放');
             },
             onVideoRender: (frameIndex) {
               debugPrint('VAP - 视频渲染帧: $frameIndex');
             },
             onFailed: (errorType, errorMsg) {
               debugPrint('VAP - 播放失败: [$errorType] $errorMsg');
-            },
-            onVideoConfigReady: () {
-              debugPrint('VAP - 视频配置就绪');
             },
           ),
         ),
