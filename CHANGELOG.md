@@ -1,36 +1,8 @@
-## 0.0.1
+## 0.1.1
 
-* Initial release: support VAP video playback on Android and iOS
-* Support for local, asset, and network video sources
-* Loop playback with repeatCount parameter
-* Multiple playback callbacks
-
-## 0.0.2
-
-* edit example to use VAP video
-
-
-## 0.0.3
-
-* add FlutterVapController to control video playback
-
-## 0.0.4
-
-* The parameters path,sourceType,repeatCount are passed in using the play method of the controller
-
-## 0.0.5
-
-* Fix crash error in iOS
-
-## 0.0.6
-
-* Fixed the looping issue
-
-## 0.0.8
-
-* Fixed the issue of loading resources on mobile devices
+* Added the 'repeatCount' parameter to control the number of loops.
+* The 'scaleType' parameter is added to support setting the video zoom type.
 
 ## 0.1.0
 
-
-* fix ios bug
+* Released the first stable version with support for video playback in 'vap' format for files and resources.

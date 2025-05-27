@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vap_plugin/flutter_vap_controller.dart';
+import 'package:flutter_vap_plugin/vap_scale_type.dart';
 
 typedef VapErrorCallback = void Function(int errorType, String errorMsg);
 typedef VapFrameCallback = void Function(int frameIndex);
@@ -16,6 +17,7 @@ class FlutterVapView extends StatefulWidget {
     this.onVideoStop,
     this.onVideoRender,
     this.onFailed,
+    this.scaleType = VapScaleType.fitXY,
   });
 
   /// 外部控制器，必填
@@ -35,6 +37,10 @@ class FlutterVapView extends StatefulWidget {
   // Callback when playback fails, returns error type and message
   // 播放失败回调，返回错误类型和信息
   final VapErrorCallback? onFailed;
+
+  /// 视频缩放类型，默认 fitXY
+  /// Video scaling type, default is fitXY
+  final VapScaleType scaleType;
 
   @override
   State<FlutterVapView> createState() => _FlutterVapViewState();
@@ -86,6 +92,7 @@ class _FlutterVapViewState extends State<FlutterVapView> {
         layoutDirection: TextDirection.ltr,
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
+        creationParams: <String, dynamic>{'scaleType': widget.scaleType.name},
       );
     } else if (Platform.isIOS) {
       return UiKitView(
@@ -93,6 +100,7 @@ class _FlutterVapViewState extends State<FlutterVapView> {
         layoutDirection: TextDirection.ltr,
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
+        creationParams: <String, dynamic>{'scaleType': widget.scaleType.name},
       );
     } else {
       return const Center(child: Text('Unsupported platform'));

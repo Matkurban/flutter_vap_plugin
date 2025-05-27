@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vap_plugin/flutter_vap_plugin.dart';
+import 'package:flutter_vap_plugin/vap_scale_type.dart';
 
 void main() {
   runApp(MyApp());
@@ -19,10 +20,7 @@ class MyApp extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
-                vapController.play(
-                  path: "assets/videos/test1.mp4",
-                  sourceType: VapSourceType.asset,
-                );
+                vapController.play(path: "assets/videos/test1.mp4", sourceType: VapSourceType.asset, repeatCount: 3);
               },
               child: Text("播放资源1"),
             ),
@@ -33,6 +31,7 @@ class MyApp extends StatelessWidget {
           height: double.infinity,
           child: FlutterVapView(
             controller: vapController,
+            scaleType: VapScaleType.fitXY,
             onVideoStart: () {
               debugPrint('VAP - 视频开始播放');
             },

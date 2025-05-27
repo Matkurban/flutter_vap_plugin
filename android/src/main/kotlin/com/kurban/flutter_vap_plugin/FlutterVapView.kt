@@ -7,22 +7,24 @@ import com.tencent.qgame.animplayer.inter.IAnimListener
 import com.tencent.qgame.animplayer.util.ScaleType
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.platform.PlatformView
-import io.flutter.plugin.platform.PlatformViewFactory
 import java.io.File
-import android.net.Uri
 import android.util.Log
 import java.io.FileOutputStream
-import java.net.URL
 import io.flutter.FlutterInjector
-import java.io.IOException
 
+
+/**
+ *
+ * @author matkurban
+ * @contact QQ 3496354336
+ * @date 2025/5/27 16:08
+ */
 class FlutterVapView(
     private val context: Context,
-    private val messenger: BinaryMessenger,
-    private val viewId: Int,
-    private val params: Map<String, Any>?
+    messenger: BinaryMessenger,
+    viewId: Int,
+    args: Any? ,
 ) : PlatformView, IAnimListener {
 
     private var animView: AnimView = AnimView(context)
@@ -30,6 +32,7 @@ class FlutterVapView(
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var lastPlayedFile: File? = null
     private var destroyed = false
+    private  var scaleType:ScaleType=ScaleType.FIT_XY
 
     init {
         // 设置视图布局参数，使其撑满父容器
@@ -39,8 +42,18 @@ class FlutterVapView(
         )
         animView.layoutParams = layoutParams
 
+        // 解析参数
+        if (args is Map<*, *>) {
+            scaleType = when (args["scaleType"]) {
+                "FIT_XY" -> ScaleType.FIT_XY
+                "FIT_CENTER" -> ScaleType.FIT_CENTER
+                "CENTER_CROP" -> ScaleType.CENTER_CROP
+                else -> ScaleType.FIT_XY
+            }
+        }
+
         // 设置缩放类型为FIT_XY以撑满容器
-        animView.setScaleType(ScaleType.FIT_XY)
+        animView.setScaleType(scaleType)
         animView.setAnimListener(this)
         methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
@@ -90,11 +103,6 @@ class FlutterVapView(
         }
     }
 
-    private fun startPlay(file: File) {
-        animView.startPlay(file)
-        lastPlayedFile = file
-    }
-
     private fun playWithParams(path: String, sourceType: String, repeatCount: Int) {
         try {
             when (sourceType) {
@@ -126,13 +134,6 @@ class FlutterVapView(
             }
         } catch (e: Exception) {
             onFailed(-1, "Playback error: ${e.message}")
-        }
-    }
-
-    private fun destroyInstance() {
-        if (!destroyed) {
-            animView.stopPlay()
-            destroyed = true
         }
     }
 
@@ -190,12 +191,4 @@ class FlutterVapView(
     }
 }
 
-class FlutterVapViewFactory(
-    private val context: Context,
-    private val messenger: BinaryMessenger
-) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
-    override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
-        val params = args as? Map<String, Any>
-        return FlutterVapView(context, messenger, viewId, params)
-    }
-}
+

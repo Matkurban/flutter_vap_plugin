@@ -7,6 +7,12 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 
+/**
+ *
+ * @author matkurban
+ * @contact QQ 3496354336
+ * @date 2025/5/27 16:08
+ */
 class FlutterVapPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
   private lateinit var context: Context
@@ -20,7 +26,7 @@ class FlutterVapPlugin: FlutterPlugin, MethodCallHandler {
       .platformViewRegistry
       .registerViewFactory(
         "flutter_vap_plugin",
-        FlutterVapViewFactory(context, flutterPluginBinding.binaryMessenger)
+        FlutterVapViewFactory(flutterPluginBinding.binaryMessenger)
       )
   }
 

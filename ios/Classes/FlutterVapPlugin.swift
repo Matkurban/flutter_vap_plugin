@@ -44,7 +44,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
     private var channel: FlutterMethodChannel
     private var registrar: FlutterPluginRegistrar
     private var currentConfig: [String: Any]?
-    private var isPlaying: Bool = false  // 添加播放状态标记
+    private var isPlaying: Bool = false
 
     init(frame: CGRect, viewId: Int64, messenger: FlutterBinaryMessenger, registrar: FlutterPluginRegistrar, args: Any?) {
         self.containerView = UIView(frame: frame)
@@ -67,7 +67,6 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
             case "play":
                 if let args = call.arguments as? [String: Any],
                    let path = args["path"] as? String,
-                  
                    let sourceType = args["sourceType"] as? String {
                     self?.playWithParams(path: path, sourceType: sourceType)
                     print("play 方法 sourcePath:",path)
