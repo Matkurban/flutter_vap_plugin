@@ -67,11 +67,9 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
             case "play":
                 if let args = call.arguments as? [String: Any],
                    let path = args["path"] as? String,
-                   let repeatCount=args["repeatCount"] as? NSInteger,
                    let sourceType = args["sourceType"] as? String {
-                    self?.playWithParams(path: path, sourceType: sourceType,repeatCount: repeatCount)
+                    self?.playWithParams(path: path, sourceType: sourceType)
                     print("play 方法 sourcePath:",path)
-                    print("play 方法 repeatCount:",repeatCount)
                     result(nil)
                 } else {
                     result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments for play", details: nil))
@@ -108,7 +106,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
         }
     }
 
-    private func playVideo(_ videoPath: String,repeatCount:NSInteger) {
+    private func playVideo(_ videoPath: String) {
         guard let vapView = self.vapView else {
             let errorInfo: [String: Any] = [
                 "errorType": -1,
@@ -133,7 +131,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
 
         print("FlutterVapPlugin - Playing video from path: \(videoPath)")
         vapView.contentMode = .scaleToFill
-        vapView.playHWDMP4(videoPath, repeatCount: repeatCount, delegate: self)
+        vapView.playHWDMP4(videoPath,repeatCount: 0,  delegate: self)
     }
 
 //    开始播放
@@ -152,9 +150,10 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
 
     func vapWrap_viewDidFinishPlayMP4(_ totalFrameCount: Int, view container: UIView) {
         isPlaying = false
-        self.channel.invokeMethod("onVideoFinish", arguments: nil)
         // 确保不会自动开始下一次播放
         self.vapView?.stopHWDMP4()
+        self.channel.invokeMethod("onVideoFinish", arguments: nil)
+       
     }
 
     func vapWrap_viewDidFailPlayMP4(_ error: Error) {
@@ -172,23 +171,20 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
         self.vapView = nil
     }
 
-    deinit {
-        destroyInstance()
-    }
 
     func view() -> UIView {
         return containerView
     }
 
-    private func playWithParams(path: String, sourceType: String,repeatCount:NSInteger) {
+    private func playWithParams(path: String, sourceType: String) {
         setupVapViewIfNeeded()
         switch sourceType {
         case "file":
-            self.playVideo(path,repeatCount: repeatCount)
+            self.playVideo(path)
         case "asset":
             let key = registrar.lookupKey(forAsset: path)
             if let assetPath = Bundle.main.path(forResource: key, ofType: nil) {
-                self.playVideo(assetPath,repeatCount: repeatCount)
+                self.playVideo(assetPath)
             } else {
                 print("FlutterVapPlugin - Could not find asset: \(path)")
                 let errorInfo: [String: Any] = [

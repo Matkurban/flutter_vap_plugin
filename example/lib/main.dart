@@ -20,7 +20,11 @@ class MyApp extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
-                vapController.play(path: "assets/videos/test1.mp4", sourceType: VapSourceType.asset, repeatCount: 3);
+                vapController.play(
+                  path: "assets/videos/test1.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
               },
               child: Text("播放资源1"),
             ),
