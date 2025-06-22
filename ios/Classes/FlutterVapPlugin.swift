@@ -145,7 +145,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
     
     func vapWrap_viewDidStopPlayMP4(_ lastFrameIndex: Int, view container: UIView) {
         isPlaying = false
-        self.channel.invokeMethod("onVideoStop", arguments: nil)
+        self.channel.invokeMethod("onVideoDestroy", arguments: nil)
     }
 
     func vapWrap_viewDidFinishPlayMP4(_ totalFrameCount: Int, view container: UIView) {

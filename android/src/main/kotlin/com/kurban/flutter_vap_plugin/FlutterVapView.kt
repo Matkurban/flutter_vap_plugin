@@ -1,6 +1,8 @@
 package com.kurban.flutter_vap_plugin
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import com.tencent.qgame.animplayer.AnimView
 import com.tencent.qgame.animplayer.inter.IAnimListener
@@ -29,7 +31,7 @@ class FlutterVapView(
 
     private var animView: AnimView = AnimView(context)
     private val methodChannel: MethodChannel = MethodChannel(messenger, "flutter_vap_plugin_$viewId")
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var lastPlayedFile: File? = null
     private var destroyed = false
     private  var scaleType:ScaleType=ScaleType.FIT_XY
@@ -59,14 +61,25 @@ class FlutterVapView(
             when (call.method) {
                 "stop" -> {
                     animView.stopPlay()
-                    result.success(null)
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        result.success(animView.isRunning())
+                    }, 100)
                 }
                 "play" -> {
                     val path = (call.argument<String>("path"))
                     val sourceType = (call.argument<String>("sourceType"))
                     val repeatCount = call.argument<Int>("repeatCount") ?: 1
                     if (path != null && sourceType != null) {
-                        playWithParams(path, sourceType, repeatCount)
+                        if (animView.isRunning()){
+                            animView.stopPlay()
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                playWithParams(path, sourceType, repeatCount)
+                            }, 100)
+                        }else{
+                            playWithParams(path, sourceType, repeatCount)
+                        }
+
+
                     }
                     result.success(null)
                 }
@@ -177,7 +190,7 @@ class FlutterVapView(
 
     override fun onVideoDestroy() {
         mainHandler.post {
-            methodChannel.invokeMethod("onVideoStop", null)
+            methodChannel.invokeMethod("onVideoDestroy", null)
         }
     }
 

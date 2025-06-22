@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Fixed the issue that playing another video in playback would not play
+
 ## 0.1.1
 
 * Added the 'repeatCount' parameter to control the number of loops.

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vap_plugin/flutter_vap_controller.dart';
@@ -14,7 +15,7 @@ class FlutterVapView extends StatefulWidget {
     required this.controller,
     this.onVideoStart,
     this.onVideoFinish,
-    this.onVideoStop,
+    this.onVideoDestroy,
     this.onVideoRender,
     this.onFailed,
     this.scaleType = VapScaleType.fitXY,
@@ -30,7 +31,7 @@ class FlutterVapView extends StatefulWidget {
   final VapCallback? onVideoFinish;
   // Callback when video is destroyed
   // 视频销毁回调
-  final VapCallback? onVideoStop;
+  final VapCallback? onVideoDestroy;
   // Callback for each rendered frame, returns current frame index
   // 渲染帧回调，返回当前帧索引
   final VapFrameCallback? onVideoRender;
@@ -69,8 +70,8 @@ class _FlutterVapViewState extends State<FlutterVapView> {
       case 'onVideoFinish':
         widget.onVideoFinish?.call();
         break;
-      case 'onVideoStop':
-        widget.onVideoStop?.call();
+      case 'onVideoDestroy':
+        widget.onVideoDestroy?.call();
         break;
       case 'onVideoRender':
         final frameIndex = call.arguments['frameIndex'] as int;

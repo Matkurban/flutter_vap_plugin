@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vap_plugin/flutter_vap_plugin.dart';
-import 'package:flutter_vap_plugin/vap_scale_type.dart';
 
 void main() {
   runApp(MyApp());
@@ -19,14 +18,25 @@ class MyApp extends StatelessWidget {
           title: const Text('Plugin example app'),
           actions: [
             TextButton(
-              onPressed: () {
-                vapController.play(
-                  path: "assets/videos/test1.mp4",
-                  sourceType: VapSourceType.asset,
-                  repeatCount: 1,
-                );
+              onPressed: () async {
+                await vapController.stop();
+                vapController.play(path: "assets/videos/video1.mp4", sourceType: VapSourceType.asset, repeatCount: 1);
               },
-              child: Text("播放资源1"),
+              child: Text("1"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await vapController.stop();
+                vapController.play(path: "assets/videos/video2.mp4", sourceType: VapSourceType.asset, repeatCount: 1);
+              },
+              child: Text("2"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await vapController.stop();
+                vapController.play(path: "assets/videos/video3.mp4", sourceType: VapSourceType.asset, repeatCount: 1);
+              },
+              child: Text("3"),
             ),
           ],
         ),
@@ -42,7 +52,7 @@ class MyApp extends StatelessWidget {
             onVideoFinish: () {
               debugPrint('VAP - 视频播放完成');
             },
-            onVideoStop: () {
+            onVideoDestroy: () {
               debugPrint('VAP - 视频播放器停止播放');
             },
             onVideoRender: (frameIndex) {
