@@ -79,10 +79,15 @@ class MyApp extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
             ImagePicker imagePicker = ImagePicker();
-            XFile? videoFile = await imagePicker.pickVideo(source: ImageSource.gallery);
+            XFile? videoFile = await imagePicker.pickVideo(
+              source: ImageSource.gallery,
+            );
             if (videoFile != null) {
               await vapController.stop();
-              await vapController.play(path: videoFile.path, sourceType: VapSourceType.file);
+              await vapController.play(
+                path: videoFile.path,
+                sourceType: VapSourceType.file,
+              );
             }
           },
           child: Icon(Icons.file_copy),
