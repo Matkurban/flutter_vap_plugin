@@ -15,7 +15,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_vap_plugin: ^0.1.1
+  flutter_vap_plugin: '^lastVersion'
 ```
 
 ## Usage
@@ -24,7 +24,7 @@ See the example below:
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_vap_plugin/flutter_vap_plugin.dart';
-import 'package:flutter_vap_plugin/vap_scale_type.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(MyApp());
@@ -43,10 +43,37 @@ class MyApp extends StatelessWidget {
           title: const Text('Plugin example app'),
           actions: [
             TextButton(
-              onPressed: () {
-                vapController.play(path: "assets/videos/test1.mp4", sourceType: VapSourceType.asset, repeatCount: 3);
+              onPressed: () async {
+                await vapController.stop();
+                vapController.play(
+                  path: "assets/videos/video1.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
               },
-              child: Text("播放资源1"),
+              child: Text("1"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await vapController.stop();
+                vapController.play(
+                  path: "assets/videos/video2.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
+              },
+              child: Text("2"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await vapController.stop();
+                vapController.play(
+                  path: "assets/videos/video3.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
+              },
+              child: Text("3"),
             ),
           ],
         ),
@@ -62,7 +89,7 @@ class MyApp extends StatelessWidget {
             onVideoFinish: () {
               debugPrint('VAP - 视频播放完成');
             },
-            onVideoStop: () {
+            onVideoDestroy: () {
               debugPrint('VAP - 视频播放器停止播放');
             },
             onVideoRender: (frameIndex) {
@@ -73,15 +100,27 @@ class MyApp extends StatelessWidget {
             },
           ),
         ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            ImagePicker imagePicker = ImagePicker();
+            XFile? videoFile = await imagePicker.pickVideo(source: ImageSource.gallery);
+            if (videoFile != null) {
+              await vapController.stop();
+              await vapController.play(path: videoFile.path, sourceType: VapSourceType.file);
+            }
+          },
+          child: Icon(Icons.file_copy),
+        ),
       ),
     );
   }
 }
+
 ```
 
 ## Parameters
-- `path`: VAP video path (local, asset, or network)
-- `sourceType`: video source type (file/asset/network)
+- `path`: VAP video path (local, asset)
+- `sourceType`: video source type (file/asset)
 - `repeatCount`: number of times to repeat the video (default is 1)
 - Other parameters are callback functions
 

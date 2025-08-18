@@ -45,6 +45,8 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
     private var registrar: FlutterPluginRegistrar
     private var currentConfig: [String: Any]?
     private var isPlaying: Bool = false
+    // 缩放类型，默认 FIT_XY
+    private var scaleType: String = "FIT_XY"
 
     init(frame: CGRect, viewId: Int64, messenger: FlutterBinaryMessenger, registrar: FlutterPluginRegistrar, args: Any?) {
         self.containerView = UIView(frame: frame)
@@ -54,28 +56,64 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
             binaryMessenger: messenger
         )
         super.init()
+        // 读取创建参数中的 scaleType
+        if let dict = args as? [String: Any], let st = dict["scaleType"] as? String, !st.isEmpty {
+            self.scaleType = st
+        }
         self.setupMethodChannel()
+    }
+
+    // 保证在主线程执行闭包
+    private func onMain(_ block: @escaping () -> Void) {
+        if Thread.isMainThread {
+            block()
+        } else {
+            DispatchQueue.main.async { block() }
+        }
+    }
+
+    // 保证在主线程调用 Flutter 通道
+    private func invokeOnMain(_ method: String, arguments: Any? = nil) {
+        onMain { [weak self] in
+            self?.channel.invokeMethod(method, arguments: arguments)
+        }
+    }
+
+    // 应用 scaleType 到 vapView
+    private func applyScaleType() {
+        onMain { [weak self] in
+            guard let self = self, let vapView = self.vapView else { return }
+            switch self.scaleType {
+            case "FIT_CENTER":
+                vapView.contentMode = .aspectFit
+                vapView.clipsToBounds = false
+            case "CENTER_CROP":
+                vapView.contentMode = .aspectFill
+                vapView.clipsToBounds = true
+            default: // "FIT_XY"
+                vapView.contentMode = .scaleToFill
+                vapView.clipsToBounds = false
+            }
+        }
     }
 
     private func setupMethodChannel() {
         channel.setMethodCallHandler { [weak self] call, result in
-      
+            guard let self = self else { return }
             switch call.method {
             case "stop":
-                self?.stopPlayback()
+                self.stopPlayback()
                 result(nil)
             case "play":
                 if let args = call.arguments as? [String: Any],
                    let path = args["path"] as? String,
                    let sourceType = args["sourceType"] as? String {
-                    self?.playWithParams(path: path, sourceType: sourceType)
-                    print("play 方法 sourcePath:",path)
+                    self.playWithParams(path: path, sourceType: sourceType)
+                    print("play 方法 sourcePath:", path)
                     result(nil)
                 } else {
                     result(FlutterError(code: "INVALID_ARGUMENTS", message: "Invalid arguments for play", details: nil))
                 }
-                
-    
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -84,35 +122,42 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
 
     private func setupVapViewIfNeeded() {
         if vapView == nil {
-            let newVapView = QGVAPWrapView(frame: containerView.bounds)
-            vapView = newVapView
-            guard let vapView = vapView else { return }
-            vapView.translatesAutoresizingMaskIntoConstraints = false
-            containerView.addSubview(vapView)
-            NSLayoutConstraint.activate([
-                vapView.topAnchor.constraint(equalTo: containerView.topAnchor),
-                vapView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-                vapView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                vapView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor)
-            ])
-            vapView.contentMode = .scaleToFill
+            onMain { [weak self] in
+                guard let self = self else { return }
+                let newVapView = QGVAPWrapView(frame: self.containerView.bounds)
+                self.vapView = newVapView
+                guard let vapView = self.vapView else { return }
+                vapView.translatesAutoresizingMaskIntoConstraints = false
+                self.containerView.addSubview(vapView)
+                NSLayoutConstraint.activate([
+                    vapView.topAnchor.constraint(equalTo: self.containerView.topAnchor),
+                    vapView.bottomAnchor.constraint(equalTo: self.containerView.bottomAnchor),
+                    vapView.leadingAnchor.constraint(equalTo: self.containerView.leadingAnchor),
+                    vapView.trailingAnchor.constraint(equalTo: self.containerView.trailingAnchor)
+                ])
+                // 应用缩放策略
+                self.applyScaleType()
+            }
         }
     }
 
     private func stopPlayback() {
-        if isPlaying {
-            self.vapView?.stopHWDMP4()
-            isPlaying = false
+        onMain { [weak self] in
+            guard let self = self else { return }
+            if self.isPlaying {
+                self.vapView?.stopHWDMP4()
+                self.isPlaying = false
+            }
         }
     }
 
     private func playVideo(_ videoPath: String) {
-        guard let vapView = self.vapView else {
+        guard vapView != nil else {
             let errorInfo: [String: Any] = [
                 "errorType": -1,
                 "errorMsg": "VAP view not initialized"
             ]
-            self.channel.invokeMethod("onFailed", arguments: errorInfo)
+            invokeOnMain("onFailed", arguments: errorInfo)
             return
         }
 
@@ -121,54 +166,60 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
                 "errorType": -1,
                 "errorMsg": "Video file does not exist: \(videoPath)"
             ]
-            self.channel.invokeMethod("onFailed", arguments: errorInfo)
+            invokeOnMain("onFailed", arguments: errorInfo)
             return
         }
 
-        // 确保任何现有播放都被停止
-        vapView.stopHWDMP4()
-        isPlaying = true
+        // 确保任何现有播放都被停止，并按缩放策略播放
+        onMain { [weak self] in
+            guard let self = self, let vapView = self.vapView else { return }
+            vapView.stopHWDMP4()
+            self.isPlaying = true
 
-        print("FlutterVapPlugin - Playing video from path: \(videoPath)")
-        vapView.contentMode = .scaleToFill
-        vapView.playHWDMP4(videoPath,repeatCount: 0,  delegate: self)
+            print("FlutterVapPlugin - Playing video from path: \(videoPath)")
+            // 播放前应用缩放策略（若外部未来支持动态切换）
+            self.applyScaleType()
+            vapView.playHWDMP4(videoPath, repeatCount: 0, delegate: self)
+        }
     }
 
-//    开始播放
+    //    开始播放
     func vapWrap_viewDidStartPlayMP4(_ container: UIView) {
-        self.channel.invokeMethod("onVideoStart",arguments: nil)
+        invokeOnMain("onVideoStart", arguments: nil)
     }
-// 每一帧触发
+    // 每一帧触发
     func vapWrap_viewDidPlayMP4AtFrame(_ frame: QGMP4AnimatedImageFrame) {
-        self.channel.invokeMethod("onVideoRender", arguments: ["frameIndex": frame.index])
+        invokeOnMain("onVideoRender", arguments: ["frameIndex": frame.index])
     }
     
     func vapWrap_viewDidStopPlayMP4(_ lastFrameIndex: Int, view container: UIView) {
-        isPlaying = false
-        self.channel.invokeMethod("onVideoDestroy", arguments: nil)
+        onMain { [weak self] in self?.isPlaying = false }
+        invokeOnMain("onVideoDestroy", arguments: nil)
     }
 
     func vapWrap_viewDidFinishPlayMP4(_ totalFrameCount: Int, view container: UIView) {
-        isPlaying = false
-        // 确保不会自动开始下一次播放
-        self.vapView?.stopHWDMP4()
-        self.channel.invokeMethod("onVideoFinish", arguments: nil)
-       
+        onMain { [weak self] in
+            self?.isPlaying = false
+            self?.vapView?.stopHWDMP4()
+        }
+        invokeOnMain("onVideoFinish", arguments: nil)
     }
 
     func vapWrap_viewDidFailPlayMP4(_ error: Error) {
-        isPlaying = false
+        onMain { [weak self] in self?.isPlaying = false }
         let errorInfo: [String: Any] = [
             "errorType": -1,
             "errorMsg": error.localizedDescription
         ]
-        self.channel.invokeMethod("onFailed", arguments: errorInfo)
+        invokeOnMain("onFailed", arguments: errorInfo)
     }
     
     private func destroyInstance() {
-        self.stopPlayback()
-        self.vapView?.removeFromSuperview()
-        self.vapView = nil
+        stopPlayback()
+        onMain { [weak self] in
+            self?.vapView?.removeFromSuperview()
+            self?.vapView = nil
+        }
     }
 
 
@@ -191,7 +242,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
                     "errorType": -1,
                     "errorMsg": "Could not find asset: \(path)"
                 ]
-                self.channel.invokeMethod("onFailed", arguments: errorInfo)
+                invokeOnMain("onFailed", arguments: errorInfo)
             }
         default:
             print("FlutterVapPlugin - Unsupported source type: \(sourceType)")
@@ -199,7 +250,7 @@ class FlutterVapView: NSObject, FlutterPlatformView, VAPWrapViewDelegate {
                 "errorType": -1,
                 "errorMsg": "Unsupported source type: \(sourceType)"
             ]
-            self.channel.invokeMethod("onFailed", arguments: errorInfo)
+            invokeOnMain("onFailed", arguments: errorInfo)
         }
     }
 }

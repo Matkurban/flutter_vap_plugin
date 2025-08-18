@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vap_plugin/flutter_vap_plugin.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(MyApp());
@@ -20,21 +21,33 @@ class MyApp extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 await vapController.stop();
-                vapController.play(path: "assets/videos/video1.mp4", sourceType: VapSourceType.asset, repeatCount: 1);
+                vapController.play(
+                  path: "assets/videos/video1.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
               },
               child: Text("1"),
             ),
             TextButton(
               onPressed: () async {
                 await vapController.stop();
-                vapController.play(path: "assets/videos/video2.mp4", sourceType: VapSourceType.asset, repeatCount: 1);
+                vapController.play(
+                  path: "assets/videos/video2.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
               },
               child: Text("2"),
             ),
             TextButton(
               onPressed: () async {
                 await vapController.stop();
-                vapController.play(path: "assets/videos/video3.mp4", sourceType: VapSourceType.asset, repeatCount: 1);
+                vapController.play(
+                  path: "assets/videos/video3.mp4",
+                  sourceType: VapSourceType.asset,
+                  repeatCount: 1,
+                );
               },
               child: Text("3"),
             ),
@@ -62,6 +75,17 @@ class MyApp extends StatelessWidget {
               debugPrint('VAP - 播放失败: [$errorType] $errorMsg');
             },
           ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            ImagePicker imagePicker = ImagePicker();
+            XFile? videoFile = await imagePicker.pickVideo(source: ImageSource.gallery);
+            if (videoFile != null) {
+              await vapController.stop();
+              await vapController.play(path: videoFile.path, sourceType: VapSourceType.file);
+            }
+          },
+          child: Icon(Icons.file_copy),
         ),
       ),
     );
