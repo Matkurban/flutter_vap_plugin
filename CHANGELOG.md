@@ -1,3 +1,7 @@
+## 0.1.4
+
+* deleteOnEnd param added
+
 ## 0.1.3
 
 * Fix the issue of not being able to play local files in iOS
