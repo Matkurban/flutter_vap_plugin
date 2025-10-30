@@ -34,6 +34,7 @@ class FlutterVapView(
     private val mainHandler = Handler(Looper.getMainLooper())
     private var lastPlayedFile: File? = null
     private var destroyed = false
+    private var deleteOnEnd = false
     private  var scaleType:ScaleType=ScaleType.FIT_XY
 
     init {
@@ -69,14 +70,15 @@ class FlutterVapView(
                     val path = (call.argument<String>("path"))
                     val sourceType = (call.argument<String>("sourceType"))
                     val repeatCount = call.argument<Int>("repeatCount") ?: 1
+                    val delete = call.argument<Int>("deleteOnEnd") ?: true
                     if (path != null && sourceType != null) {
                         if (animView.isRunning()){
                             animView.stopPlay()
                             Handler(Looper.getMainLooper()).postDelayed({
-                                playWithParams(path, sourceType, repeatCount)
+                                playWithParams(path, sourceType, repeatCount, delete)
                             }, 100)
                         }else{
-                            playWithParams(path, sourceType, repeatCount)
+                            playWithParams(path, sourceType, repeatCount, delete)
                         }
 
 
@@ -116,7 +118,7 @@ class FlutterVapView(
         }
     }
 
-    private fun playWithParams(path: String, sourceType: String, repeatCount: Int) {
+    private fun playWithParams(path: String, sourceType: String, repeatCount: Int, delete: Bool) {
         try {
             when (sourceType) {
                 "file" -> {
@@ -125,6 +127,7 @@ class FlutterVapView(
                         animView.setLoop(repeatCount)
                         animView.startPlay(file)
                         lastPlayedFile = file
+                        deleteOnEnd = delete
                     } else {
                         onFailed(-1, "File does not exist: $path")
                     }
@@ -158,7 +161,9 @@ class FlutterVapView(
         try {
             animView.stopPlay()
             methodChannel.setMethodCallHandler(null)
-            lastPlayedFile?.delete() // 清理最后播放的临时文件
+            if(deleteOnEnd == true){
+                lastPlayedFile?.delete() // 清理最后播放的临时文件
+            }
         } catch (e: Exception) {
             Log.e("FlutterVapView", "Error during dispose", e)
         }

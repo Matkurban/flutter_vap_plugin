@@ -16,10 +16,12 @@ class FlutterVapController {
 
   /// 播放视频，必传 path/sourceType
   /// 循环播放repeatCount参数只在Android管用
+  /// [deleteOnEnd] 决定资源播放完毕后是否应删除该文件。
   Future<void> play({
     required String path,
     required VapSourceType sourceType,
     int repeatCount = 0,
+    bool deleteOnEnd = true,
   }) async {
     _lastPath = path;
     _lastSourceType = sourceType;
@@ -28,6 +30,7 @@ class FlutterVapController {
         'path': path,
         'sourceType': sourceType.type,
         'repeatCount': repeatCount,
+        'deleteOnEnd': deleteOnEnd,
       });
     }
     if (Platform.isIOS) {
