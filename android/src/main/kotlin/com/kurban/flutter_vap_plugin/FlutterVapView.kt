@@ -70,7 +70,7 @@ class FlutterVapView(
                     val path = (call.argument<String>("path"))
                     val sourceType = (call.argument<String>("sourceType"))
                     val repeatCount = call.argument<Int>("repeatCount") ?: 1
-                    val delete = call.argument<Int>("deleteOnEnd") ?: true
+                    val delete = call.argument<Boolean>("deleteOnEnd") ?: true
                     if (path != null && sourceType != null) {
                         if (animView.isRunning()){
                             animView.stopPlay()
@@ -118,7 +118,7 @@ class FlutterVapView(
         }
     }
 
-    private fun playWithParams(path: String, sourceType: String, repeatCount: Int, delete: Bool) {
+    private fun playWithParams(path: String, sourceType: String, repeatCount: Int, delete: Boolean) {
         try {
             when (sourceType) {
                 "file" -> {
