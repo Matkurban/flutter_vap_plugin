@@ -1,3 +1,7 @@
+## 0.1.5
+
+* Change deleteOnEnd argument type to Boolean
+
 ## 0.1.4
 
 * deleteOnEnd param added
