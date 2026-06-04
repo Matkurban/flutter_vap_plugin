@@ -4,6 +4,20 @@
 
 A Flutter plugin based on Tencent's VAP, supporting VAP video playback on Android and iOS.
 
+## Requirements
+
+- Flutter **3.44.0** or later (Dart **3.12** or later)
+- iOS: clone with submodules for Swift Package Manager builds:
+  ```bash
+  git clone --recurse-submodules https://github.com/Matkurban/flutter_vap_plugin.git
+  # or after clone:
+  git submodule update --init --recursive
+  ```
+- iOS Swift Package Manager is supported alongside CocoaPods. Enable with:
+  ```bash
+  flutter config --enable-swift-package-manager
+  ```
+
 ## Features
 - Supports local file, asset, and network video sources
 - Loop playback support `repeatCount`

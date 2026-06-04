@@ -1,0 +1,3 @@
+[submodule "third_party/vap"]
+	path = third_party/vap
+	url = https://github.com/Tencent/vap.git

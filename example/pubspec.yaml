@@ -3,7 +3,7 @@ description: "Demonstrates how to use the flutter_vap_plugin plugin."
 publish_to: 'none'
 version: 1.0.0
 environment:
-  sdk: ^3.7.2
+  sdk: ^3.12.0
 
 dependencies:
   flutter:

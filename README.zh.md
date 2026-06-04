@@ -2,6 +2,20 @@
 
 基于腾讯 VAP 封装的 Flutter 插件，支持在 Android 和 iOS 平台播放 VAP 视频。
 
+## 环境要求
+
+- Flutter **3.44.0** 及以上（Dart **3.12** 及以上）
+- iOS：若使用 Swift Package Manager 构建，需拉取子模块：
+  ```bash
+  git clone --recurse-submodules https://github.com/Matkurban/flutter_vap_plugin.git
+  # 或在已有仓库中执行：
+  git submodule update --init --recursive
+  ```
+- iOS 同时支持 CocoaPods 与 Swift Package Manager，可通过以下命令启用 SPM：
+  ```bash
+  flutter config --enable-swift-package-manager
+  ```
+
 ## 功能特性
 - 支持本地文件、asset、网络视频源
 - 支持循环播放repeatCount
