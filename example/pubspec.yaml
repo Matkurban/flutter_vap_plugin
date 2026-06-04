@@ -10,9 +10,9 @@ dependencies:
     sdk: flutter
   flutter_vap_plugin:
     path: ../
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   image_picker: ^1.2.0
-  file_picker: ^10.3.3
+  file_picker: ^11.0.2
 
 dev_dependencies:
   integration_test:
