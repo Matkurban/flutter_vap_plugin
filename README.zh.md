@@ -5,12 +5,7 @@
 ## 环境要求
 
 - Flutter **3.44.0** 及以上（Dart **3.12** 及以上）
-- iOS：若使用 Swift Package Manager 构建，需拉取子模块：
-  ```bash
-  git clone --recurse-submodules https://github.com/Matkurban/flutter_vap_plugin.git
-  # 或在已有仓库中执行：
-  git submodule update --init --recursive
-  ```
+- iOS：QGVAPlayer 在 SPM 解析时会从 GitHub [Tencent/vap](https://github.com/Tencent/vap)（标签 `iOS1.0.19`）自动拉取；CocoaPods 路径则由 Pod 从同一仓库下载。
 - iOS 同时支持 CocoaPods 与 Swift Package Manager，可通过以下命令启用 SPM：
   ```bash
   flutter config --enable-swift-package-manager

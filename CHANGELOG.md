@@ -2,7 +2,7 @@
 
 * **Breaking:** Minimum Flutter 3.44 / Dart 3.12.
 * Migrate Android build to Flutter built-in Kotlin.
-* Add iOS Swift Package Manager support (with local QGVAPlayer SPM package).
+* Add iOS Swift Package Manager support (QGVAPlayer fetched from GitHub at SPM resolve time).
 * Android Surface API migration assessed as not applicable (PlatformView-based).
 
 ## 0.1.6

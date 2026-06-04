@@ -7,12 +7,7 @@ A Flutter plugin based on Tencent's VAP, supporting VAP video playback on Androi
 ## Requirements
 
 - Flutter **3.44.0** or later (Dart **3.12** or later)
-- iOS: clone with submodules for Swift Package Manager builds:
-  ```bash
-  git clone --recurse-submodules https://github.com/Matkurban/flutter_vap_plugin.git
-  # or after clone:
-  git submodule update --init --recursive
-  ```
+- iOS: QGVAPlayer is fetched from [Tencent/vap](https://github.com/Tencent/vap) on GitHub (tag `iOS1.0.19`) when resolving Swift Package Manager dependencies, or via CocoaPods when using the Podfile path.
 - iOS Swift Package Manager is supported alongside CocoaPods. Enable with:
   ```bash
   flutter config --enable-swift-package-manager

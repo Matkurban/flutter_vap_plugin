@@ -1,8 +1,46 @@
 // swift-tools-version: 5.9
 
+import Foundation
 import PackageDescription
 
-let vapSourcesPath = "../../third_party/vap/iOS/QGVAPlayer/QGVAPlayer"
+private let vapClonePath = "Sources/vap"
+private let vapSourcesPath = "\(vapClonePath)/iOS/QGVAPlayer/QGVAPlayer"
+private let vapTag = "iOS1.0.19"
+private let vapRepo = "https://github.com/Tencent/vap.git"
+
+/// Fetches QGVAPlayer sources from GitHub when the package manifest is evaluated.
+private func cloneVapIfNeeded() {
+    let marker = "\(vapSourcesPath)/Classes/QGVAPWrapView.h"
+    if FileManager.default.fileExists(atPath: marker) {
+        return
+    }
+    if FileManager.default.fileExists(atPath: vapClonePath) {
+        try? FileManager.default.removeItem(atPath: vapClonePath)
+    }
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+    process.arguments = [
+        "clone",
+        "--depth", "1",
+        "--branch", vapTag,
+        vapRepo,
+        vapClonePath,
+    ]
+    do {
+        try process.run()
+        process.waitUntilExit()
+        if process.terminationStatus != 0 {
+            fputs(
+                "qgvaplayer: failed to clone \(vapRepo) (tag \(vapTag)), exit \(process.terminationStatus)\n",
+                stderr
+            )
+        }
+    } catch {
+        fputs("qgvaplayer: git clone error: \(error)\n", stderr)
+    }
+}
+
+cloneVapIfNeeded()
 
 let package = Package(
     name: "qgvaplayer",
